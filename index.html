@@ -234,6 +234,41 @@ body { background: var(--bg); color: var(--text); font-family: var(--ff); font-s
 .profile-name { font-size: 15px; font-weight: 500; color: #fff; }
 .profile-sub { font-size: 12px; color: var(--muted); }
 
+/* ── SCHEDULE ── */
+.sched-import-tabs { display: flex; gap: 4px; margin-bottom: 14px; }
+.sitab { padding: 7px 14px; border-radius: 7px; font-size: 13px; font-weight: 500; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; font-family: var(--ff); }
+.sitab.active { background: rgba(240,136,62,0.15); border-color: rgba(240,136,62,0.4); color: var(--orange); }
+.sched-import-panel { display: none; }
+.sched-import-panel.active { display: block; }
+.game-row { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 12px 14px; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
+.game-row.is-today { border-color: var(--orange); background: rgba(240,136,62,0.06); }
+.game-row.is-travel { border-color: rgba(88,166,255,0.3); background: rgba(88,166,255,0.04); }
+.game-date { font-size: 12px; color: var(--muted); font-family: var(--fm); width: 72px; flex-shrink: 0; }
+.game-info { flex: 1; }
+.game-opponent { font-size: 14px; color: #fff; font-weight: 500; }
+.game-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.game-result { display: flex; gap: 4px; }
+.res-btn { padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: transparent; font-size: 11px; font-weight: 600; cursor: pointer; font-family: var(--ff); transition: all 0.15s; }
+.res-btn.w { background: rgba(63,185,80,0.2); border-color: #3fb950; color: #3fb950; }
+.res-btn.l { background: rgba(248,81,73,0.2); border-color: #f85149; color: #f85149; }
+.res-btn.t { background: rgba(227,179,65,0.2); border-color: var(--yellow); color: var(--yellow); }
+.res-btn.inactive { opacity: 0.35; }
+.game-banner { border-radius: var(--r); padding: 13px 15px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+.game-banner.comp { background: rgba(240,136,62,0.1); border: 1px solid rgba(240,136,62,0.3); }
+.game-banner.travel { background: rgba(88,166,255,0.08); border: 1px solid rgba(88,166,255,0.25); }
+.game-banner-icon { font-size: 24px; flex-shrink: 0; }
+.game-banner-text { flex: 1; }
+.game-banner-title { font-size: 14px; font-weight: 600; color: #fff; }
+.game-banner-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.readiness-row { display: flex; gap: 5px; margin-bottom: 14px; }
+.ready-btn { flex: 1; height: 42px; border-radius: 7px; border: 1px solid var(--border); background: var(--card); cursor: pointer; font-size: 13px; font-weight: 500; color: var(--muted); transition: all 0.15s; font-family: var(--ff); }
+.ready-btn.sel { background: rgba(240,136,62,0.18); border-color: var(--orange); color: var(--orange); }
+.textarea-field { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 11px 12px; color: #fff; font-size: 14px; font-family: var(--ff); resize: none; outline: none; line-height: 1.5; }
+.textarea-field:focus { border-color: rgba(240,136,62,0.4); }
+.textarea-field::placeholder { color: var(--hint); }
+.del-btn { background: none; border: none; color: var(--hint); font-size: 18px; cursor: pointer; padding: 2px 4px; flex-shrink: 0; }
+.del-btn:hover { color: var(--red); }
+
 /* ── SCROLL ── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -368,6 +403,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--ff); font-s
     <button class="tab" onclick="sw('history',this)">History</button>
     <button class="tab" onclick="sw('trends',this)">Trends</button>
     <button class="tab" onclick="sw('calendar',this)">Calendar</button>
+    <button class="tab" onclick="sw('schedule',this)">Schedule</button>
     <button class="tab" onclick="sw('share',this)">Export</button>
   </div>
 
@@ -379,6 +415,9 @@ body { background: var(--bg); color: var(--text); font-family: var(--ff); font-s
         <div class="rb-text">⏰ No check-in yet today — takes under a minute.</div>
         <button class="rb-close" onclick="this.parentElement.style.display='none'">✕</button>
       </div>
+
+      <!-- Game / travel day banner — shown automatically from schedule -->
+      <div id="gameDayBanner" style="display:none;"></div>
 
       <div id="profileBar"></div>
 
@@ -462,6 +501,30 @@ body { background: var(--bg); color: var(--text); font-family: var(--ff); font-s
       <textarea class="nta" id="dailyNotes" rows="3" placeholder="Free text — no wrong answer here…"></textarea>
 
       <div class="alert" id="alertBox"></div>
+
+      <!-- Game day extra fields — shown only on competition days -->
+      <div id="gameDaySection" style="display:none;">
+        <div class="div"></div>
+        <div class="slbl">🏆 Game Day</div>
+        <div class="hint">Extra check-in for competition days. Pre-game readiness (1 = not ready, 5 = locked in).</div>
+        <div class="readiness-row" id="readinessRow">
+          <button class="ready-btn" onclick="setReadiness(1)">1</button>
+          <button class="ready-btn" onclick="setReadiness(2)">2</button>
+          <button class="ready-btn" onclick="setReadiness(3)">3</button>
+          <button class="ready-btn" onclick="setReadiness(4)">4</button>
+          <button class="ready-btn" onclick="setReadiness(5)">5</button>
+        </div>
+        <div class="slbl">Post-Game Result</div>
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+          <button class="res-btn" id="resW" onclick="setResult('W')">Win</button>
+          <button class="res-btn" id="resL" onclick="setResult('L')">Loss</button>
+          <button class="res-btn" id="resT" onclick="setResult('T')">Tie</button>
+          <button class="res-btn" id="resNP" onclick="setResult('')" style="opacity:0.5;">—</button>
+        </div>
+        <div class="hint" style="margin-top:-6px;">Post-game notes (optional)</div>
+        <textarea class="textarea-field" id="gameNotes" rows="2" placeholder="How did the game feel? Any post-game thoughts…"></textarea>
+      </div>
+
       <button class="btn-primary" id="submitBtn" onclick="submitLog()">Log Today's Check-in</button>
     </div>
 
@@ -533,6 +596,76 @@ body { background: var(--bg); color: var(--text); font-family: var(--ff); font-s
       <div class="slbl" style="margin-top:16px;">Mark Competition Days</div>
       <div class="hint">Mark today as a competition day to overlay it on your mood trends.</div>
       <button class="btn-sm" onclick="markCompDay()" style="width:100%;">Mark Today as Competition Day</button>
+    </div>
+
+    <!-- ── SCHEDULE ── -->
+    <div id="panel-schedule" class="panel">
+      <div class="slbl">Import Schedule</div>
+      <div class="hint">Add Hood College's lacrosse schedule. Away games automatically create a travel day the day before.</div>
+
+      <div class="sched-import-tabs">
+        <button class="sitab active" onclick="siTab('manual',this)">Manual</button>
+        <button class="sitab" onclick="siTab('csv',this)">CSV Paste</button>
+        <button class="sitab" onclick="siTab('ical',this)">iCal URL</button>
+      </div>
+
+      <!-- MANUAL -->
+      <div class="sched-import-panel active" id="si-manual">
+        <div class="hint">Add one game at a time. Date format: YYYY-MM-DD.</div>
+        <div class="mgrid">
+          <div class="mi"><label>Date</label><input type="date" id="si-date" style="background:transparent;border:none;color:#fff;font-size:14px;font-weight:500;width:100%;outline:none;font-family:var(--ff);"></div>
+          <div class="mi"><label>Home / Away</label>
+            <select id="si-ha" style="background:transparent;border:none;color:#fff;font-size:14px;font-weight:500;width:100%;outline:none;font-family:var(--ff);">
+              <option value="home">Home</option>
+              <option value="away">Away</option>
+            </select>
+          </div>
+        </div>
+        <div class="mi" style="margin-bottom:10px;"><label>Opponent</label><input type="text" id="si-opp" placeholder="e.g. Salisbury University" style="background:transparent;border:none;color:#fff;font-size:14px;width:100%;outline:none;font-family:var(--ff);"></div>
+        <div class="mgrid">
+          <div class="mi"><label>Type</label>
+            <select id="si-type" style="background:transparent;border:none;color:#fff;font-size:14px;font-weight:500;width:100%;outline:none;font-family:var(--ff);">
+              <option value="regular">Regular Season</option>
+              <option value="conference">Conference</option>
+              <option value="playoff">Playoff / Tournament</option>
+              <option value="scrimmage">Scrimmage</option>
+            </select>
+          </div>
+          <div class="mi"><label>Time (optional)</label><input type="time" id="si-time" style="background:transparent;border:none;color:#fff;font-size:14px;font-weight:500;width:100%;outline:none;font-family:var(--ff);"></div>
+        </div>
+        <button class="btn-primary" style="margin-top:10px;" onclick="addGameManual()">Add Game</button>
+      </div>
+
+      <!-- CSV PASTE -->
+      <div class="sched-import-panel" id="si-csv">
+        <div class="hint">Paste CSV data with columns in this order: <strong style="color:var(--text);">Date, Opponent, Home/Away, Type</strong><br>Date format: YYYY-MM-DD. Home/Away: "home" or "away". Type: regular/conference/playoff/scrimmage.<br><br>You can export from Excel/Google Sheets or copy from Hood College's website.</div>
+        <textarea class="textarea-field" id="si-csv-text" rows="6" placeholder="2025-02-15,Salisbury University,away,conference&#10;2025-02-19,McDaniel College,home,regular&#10;2025-02-22,Stevenson University,away,regular"></textarea>
+        <button class="btn-primary" style="margin-top:10px;" onclick="importCSVSchedule()">Import CSV</button>
+        <div id="csvResult" style="font-size:12px;color:var(--green);margin-top:8px;"></div>
+      </div>
+
+      <!-- ICAL URL -->
+      <div class="sched-import-panel" id="si-ical">
+        <div class="hint">Paste a public iCal (.ics) URL — from Google Calendar, Apple Calendar, or the athletics website. The app will fetch and parse all events as games.</div>
+        <div style="background:rgba(88,166,255,0.08);border:1px solid rgba(88,166,255,0.2);border-radius:var(--r);padding:12px;margin-bottom:12px;">
+          <div style="font-size:12px;color:var(--accent);font-weight:500;margin-bottom:4px;">How to get the URL from Hood College Athletics:</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.6;">1. Go to the Hood College athletics schedule page<br>2. Look for a calendar export or "Subscribe" button<br>3. Copy the .ics link and paste it below</div>
+        </div>
+        <div class="mi" style="margin-bottom:10px;"><label>iCal URL</label><input type="url" id="si-ical-url" placeholder="https://calendar.google.com/calendar/ical/…" style="background:transparent;border:none;color:#fff;font-size:13px;width:100%;outline:none;font-family:var(--ff);"></div>
+        <div class="hint">Note: The calendar must be publicly accessible (no login required) for the import to work.</div>
+        <button class="btn-primary" style="margin-top:6px;" onclick="importIcal()">Fetch & Import</button>
+        <div id="icalResult" style="font-size:12px;margin-top:8px;"></div>
+      </div>
+
+      <!-- GAME LIST -->
+      <div style="margin-top:22px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div class="slbl" style="margin:0;">Season Schedule</div>
+          <button onclick="clearSchedule()" style="background:none;border:none;color:var(--hint);font-size:12px;cursor:pointer;font-family:var(--ff);">Clear all</button>
+        </div>
+        <div class="hint">Win/Loss results can be logged here or from the Today tab on game day. Travel days are auto-added before away games.</div>
+        <div id="gameList"></div>
+      </div>
     </div>
 
     <!-- ── EXPORT / SHARE ── -->
@@ -626,9 +759,9 @@ body { background: var(--bg); color: var(--text); font-family: var(--ff); font-s
 // ══════════════════════════════════
 // STATE & STORAGE
 // ══════════════════════════════════
-const SK = 'at_logs_v3', MK = 'at_meds_v3', PK = 'at_profile_v3', CK = 'at_comp_v3';
-let logs = [], meds = [], profile = {}, compDays = [], shareData = null;
-let S = { highMood: null, lowMood: null, energy: 5, focus: 5, anxiety: 2, irritability: 2, medEff: {} };
+const SK = 'at_logs_v3', MK = 'at_meds_v3', PK = 'at_profile_v3', CK = 'at_comp_v3', SCHK = 'at_sched_v1';
+let logs = [], meds = [], profile = {}, compDays = [], games = [], shareData = null;
+let S = { highMood: null, lowMood: null, energy: 5, focus: 5, anxiety: 2, irritability: 2, medEff: {}, readiness: null, result: '', gameNotes: '' };
 let calYear, calMonth, trendPeriod = 7, moodChartInst = null, obMedCount = 1;
 
 function load() {
@@ -636,6 +769,7 @@ function load() {
   try { meds = JSON.parse(localStorage.getItem(MK) || '[]'); } catch(e) { meds = []; }
   try { profile = JSON.parse(localStorage.getItem(PK) || '{}'); } catch(e) { profile = {}; }
   try { compDays = JSON.parse(localStorage.getItem(CK) || '[]'); } catch(e) { compDays = []; }
+  try { games = JSON.parse(localStorage.getItem(SCHK) || '[]'); } catch(e) { games = []; }
 }
 
 function save() {
@@ -644,6 +778,7 @@ function save() {
     localStorage.setItem(MK, JSON.stringify(meds));
     localStorage.setItem(PK, JSON.stringify(profile));
     localStorage.setItem(CK, JSON.stringify(compDays));
+    localStorage.setItem(SCHK, JSON.stringify(games));
   } catch(e) {}
 }
 
@@ -707,6 +842,7 @@ function initApp() {
   document.getElementById('hdrName').textContent = profile.name ? profile.name + "'s Tracker" : 'AthleteTrack';
   updateStreak();
   checkReminder();
+  renderGameDayBanner();
   renderProfileBar();
   renderMedEffRows();
   renderMeds();
@@ -722,6 +858,7 @@ function sw(tab, el) {
   if (tab === 'trends') renderTrends();
   if (tab === 'calendar') renderCalendar();
   if (tab === 'meds') renderMeds();
+  if (tab === 'schedule') renderGameList();
 }
 
 // ══════════════════════════════════
@@ -812,7 +949,10 @@ function submitLog() {
     sideEffects: getTags('seTags'), social: getTags('socTags'),
     medEff: { ...S.medEff },
     meds: meds.filter(m => m.taken).map(m => m.name),
-    notes: document.getElementById('dailyNotes').value.trim()
+    notes: document.getElementById('dailyNotes').value.trim(),
+    readiness: S.readiness,
+    result: S.result,
+    gameNotes: document.getElementById('gameNotes')?.value?.trim() || ''
   };
   const ei = logs.findIndex(l => l.date === entry.date);
   if (ei >= 0) logs[ei] = entry; else logs.unshift(entry);
@@ -1017,7 +1157,8 @@ function renderCalendar() {
   for (let d = 1; d <= total; d++) {
     const ds = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const log = logs.find(l => l.date === ds);
-    const isComp = compDays.includes(ds);
+    const isComp = compDays.includes(ds) || !!getGameOnDate(ds);
+    const isTrav = isTravelDay(ds);
     const isToday = ds === todayStr;
     let cls = 'cal-day';
     if (!log) cls += d <= new Date().getDate() || calMonth < new Date().getMonth() || calYear < new Date().getFullYear() ? ' no-log' : '';
@@ -1025,6 +1166,7 @@ function renderCalendar() {
     else if (log.lowMood < -1) cls += ' mood-low';
     else cls += ' has-log';
     if (isComp) cls += ' is-comp';
+    if (isTrav && !isComp) cls += ' is-comp' // travel day gets same orange border
     if (isToday) cls += ' today';
     html += `<div class="${cls}" onclick="showDay('${ds}')">${d}</div>`;
   }
@@ -1254,6 +1396,221 @@ function addToCalendar() {
   a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
   a.download = 'athlete_daily_reminder.ics'; a.click();
 }
+
+// ══════════════════════════════════
+// SCHEDULE
+// ══════════════════════════════════
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+
+function travelDay(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split('T')[0];
+}
+
+function getGameOnDate(ds) { return games.find(g => g.date === ds); }
+function isTravelDay(ds) { return games.some(g => g.ha === 'away' && travelDay(g.date) === ds); }
+function getTravelGame(ds) { return games.find(g => g.ha === 'away' && travelDay(g.date) === ds); }
+
+function renderGameDayBanner() {
+  const banner = document.getElementById('gameDayBanner');
+  const gameSection = document.getElementById('gameDaySection');
+  const today = todayStr();
+  const game = getGameOnDate(today);
+  const travel = !game && isTravelDay(today);
+  if (game) {
+    const ha = game.ha === 'home' ? '🏠 Home' : '✈️ Away';
+    banner.innerHTML = `<div class="game-banner comp">
+      <div class="game-banner-icon">🏆</div>
+      <div class="game-banner-text">
+        <div class="game-banner-title">Game Day — vs. ${game.opponent}</div>
+        <div class="game-banner-sub">${ha} · ${cap(game.type || 'regular season')}${game.time ? ' · ' + game.time : ''}</div>
+      </div>
+    </div>`;
+    banner.style.display = 'block';
+    gameSection.style.display = 'block';
+    if (game.result) setResult(game.result, true);
+  } else if (travel) {
+    const tg = getTravelGame(today);
+    banner.innerHTML = `<div class="game-banner travel">
+      <div class="game-banner-icon">🚌</div>
+      <div class="game-banner-text">
+        <div class="game-banner-title">Travel Day</div>
+        <div class="game-banner-sub">Away game tomorrow vs. ${tg.opponent}</div>
+      </div>
+    </div>`;
+    banner.style.display = 'block';
+    gameSection.style.display = 'none';
+  } else {
+    banner.style.display = 'none';
+    gameSection.style.display = 'none';
+  }
+}
+
+function setReadiness(val) {
+  S.readiness = val;
+  document.querySelectorAll('.ready-btn').forEach((b, i) => {
+    b.className = 'ready-btn' + (i + 1 <= val ? ' sel' : '');
+  });
+}
+
+function setResult(val, silent) {
+  S.result = val;
+  ['W','L','T',''].forEach(r => {
+    const id = 'res' + (r === '' ? 'NP' : r);
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    const map = { W: 'w', L: 'l', T: 't' };
+    btn.className = 'res-btn' + (map[r] ? ' ' + map[r] : '') + (val !== '' && r !== val ? ' inactive' : '');
+  });
+  if (!silent) {
+    const game = getGameOnDate(todayStr());
+    if (game) { game.result = val; save(); renderGameList(); }
+  }
+}
+
+function siTab(tab, el) {
+  document.querySelectorAll('.sitab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.sched-import-panel').forEach(p => p.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('si-' + tab).classList.add('active');
+}
+
+function addGameManual() {
+  const date = document.getElementById('si-date').value;
+  const opp = document.getElementById('si-opp').value.trim();
+  const ha = document.getElementById('si-ha').value;
+  const type = document.getElementById('si-type').value;
+  const time = document.getElementById('si-time').value;
+  if (!date || !opp) { alert('Please enter a date and opponent.'); return; }
+  addGame({ date, opponent: opp, ha, type, time, result: '' });
+  document.getElementById('si-date').value = '';
+  document.getElementById('si-opp').value = '';
+  document.getElementById('si-time').value = '';
+  renderGameList(); renderGameDayBanner(); renderCalendar();
+}
+
+function addGame(g) {
+  const existing = games.findIndex(x => x.date === g.date && x.opponent === g.opponent);
+  if (existing >= 0) games[existing] = { ...games[existing], ...g };
+  else games.push(g);
+  games.sort((a, b) => a.date.localeCompare(b.date));
+  save();
+}
+
+function importCSVSchedule() {
+  const raw = document.getElementById('si-csv-text').value.trim();
+  if (!raw) return;
+  const lines = raw.split('\n').filter(l => l.trim());
+  let count = 0, errors = 0;
+  lines.forEach(line => {
+    const parts = line.split(',').map(p => p.trim().replace(/^"|"$/g, ''));
+    if (parts.length < 2) { errors++; return; }
+    const [date, opponent, ha, type] = parts;
+    if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) { errors++; return; }
+    addGame({ date, opponent: opponent || 'Unknown', ha: ha?.toLowerCase() === 'away' ? 'away' : 'home', type: type || 'regular', time: '', result: '' });
+    count++;
+  });
+  document.getElementById('csvResult').textContent = `✓ Imported ${count} game${count !== 1 ? 's' : ''}${errors ? ` (${errors} skipped — check format)` : ''}`;
+  document.getElementById('csvResult').style.color = errors && !count ? 'var(--red)' : 'var(--green)';
+  renderGameList(); renderGameDayBanner(); renderCalendar();
+}
+
+async function importIcal() {
+  const url = document.getElementById('si-ical-url').value.trim();
+  const result = document.getElementById('icalResult');
+  if (!url) { result.textContent = 'Please enter a URL.'; result.style.color = 'var(--red)'; return; }
+  result.textContent = 'Fetching calendar…'; result.style.color = 'var(--muted)';
+  try {
+    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
+    const res = await fetch(proxyUrl);
+    if (!res.ok) throw new Error('Could not fetch calendar — check the URL is publicly accessible');
+    const text = await res.text();
+    const parsed = parseIcal(text);
+    if (!parsed.length) throw new Error('No events found in calendar');
+    parsed.forEach(g => addGame(g));
+    result.textContent = `✓ Imported ${parsed.length} event${parsed.length !== 1 ? 's' : ''} from calendar`;
+    result.style.color = 'var(--green)';
+    renderGameList(); renderGameDayBanner(); renderCalendar();
+  } catch(e) {
+    result.textContent = '✗ ' + (e.message || 'Import failed. Try CSV paste instead.');
+    result.style.color = 'var(--red)';
+  }
+}
+
+function parseIcal(text) {
+  const events = [];
+  const blocks = text.split('BEGIN:VEVENT');
+  blocks.slice(1).forEach(block => {
+    const get = key => { const m = block.match(new RegExp(key + '[^:]*:([^\\r\\n]+')); return m ? m[1].trim() : ''; };
+    const dtstart = get('DTSTART');
+    const summary = get('SUMMARY');
+    if (!dtstart || !summary) return;
+    const dm = dtstart.match(/(\d{4})(\d{2})(\d{2})/);
+    if (!dm) return;
+    const date = `${dm[1]}-${dm[2]}-${dm[3]}`;
+    const loc = get('LOCATION').toLowerCase();
+    const ha = loc.includes('away') || loc.includes('at ') ? 'away' : 'home';
+    events.push({ date, opponent: summary.replace(/^(vs\.?|at)\s*/i, '').trim(), ha, type: 'regular', time: '', result: '' });
+  });
+  return events;
+}
+
+function renderGameList() {
+  const c = document.getElementById('gameList');
+  if (!c) return;
+  if (!games.length) {
+    c.innerHTML = '<div class="empty"><div class="empty-icon">📅</div>No games added yet.<br>Use one of the import methods above.</div>';
+    return;
+  }
+  const today = todayStr();
+  c.innerHTML = games.map((g, i) => {
+    const isToday = g.date === today;
+    const travel = g.ha === 'away' ? travelDay(g.date) : null;
+    const travelIsToday = travel === today;
+    let html = '';
+    if (travel) {
+      html += `<div class="game-row is-travel" style="${travelIsToday ? 'border-color:var(--accent);' : ''}">
+        <div class="game-date" style="color:var(--accent);font-size:11px;">${fmtDateShort(travel)}</div>
+        <div class="game-info">
+          <div class="game-opponent" style="font-size:13px;color:var(--muted);">🚌 Travel day</div>
+          <div class="game-meta">Before away game vs. ${g.opponent}</div>
+        </div>
+      </div>`;
+    }
+    html += `<div class="game-row ${isToday ? 'is-today' : ''}">
+      <div class="game-date">${fmtDateShort(g.date)}</div>
+      <div class="game-info">
+        <div class="game-opponent">${g.opponent}</div>
+        <div class="game-meta">${g.ha === 'home' ? '🏠 Home' : '✈️ Away'} · ${cap(g.type || 'regular')}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
+        <div class="game-result">
+          ${['W','L','T'].map(r => `<button class="res-btn ${g.result===r?(r==='W'?'w':r==='L'?'l':'t'):''}" onclick="setGameResult(${i},'${r}')">${r}</button>`).join('')}
+        </div>
+      </div>
+      <button class="del-btn" onclick="deleteGame(${i})">✕</button>
+    </div>`;
+    return html;
+  }).join('');
+}
+
+function setGameResult(i, result) {
+  games[i].result = games[i].result === result ? '' : result;
+  save(); renderGameList();
+}
+
+function deleteGame(i) {
+  games.splice(i, 1);
+  save(); renderGameList(); renderCalendar(); renderGameDayBanner();
+}
+
+function clearSchedule() {
+  if (!confirm('Clear all games? This cannot be undone.')) return;
+  games = []; save(); renderGameList(); renderCalendar(); renderGameDayBanner();
+}
+
+function fmtDateShort(d) { return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
 
 // ══════════════════════════════════
 // UTILS
